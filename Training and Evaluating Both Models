@@ -1,0 +1,15 @@
+# Nested U-Net (U-Net++)
+nested_unet_model = nested_unet(input_shape)
+nested_unet_history = train_model(nested_unet_model, train_generator, validation_generator)
+
+# Attention U-Net
+attention_unet_model = attention_unet(input_shape)
+attention_unet_history = train_model(attention_unet_model, train_generator, validation_generator)
+#comparing performance
+# Evaluate Nested U-Net
+nested_unet_eval = nested_unet_model.evaluate(validation_generator)
+print(f"Nested U-Net DICE Score: {nested_unet_eval[2]}")
+
+# Evaluate Attention U-Net
+attention_unet_eval = attention_unet_model.evaluate(validation_generator)
+print(f"Attention U-Net DICE Score: {attention_unet_eval[2]}")

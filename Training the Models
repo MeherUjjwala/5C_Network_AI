@@ -27,3 +27,19 @@ validation_generator = datagen.flow_from_directory(
     batch_size=32,
     class_mode='binary'
 )
+#training function
+def train_model(model, train_generator, validation_generator, epochs=50):
+    # Compile the model
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    
+    # Train the model
+    history = model.fit(
+        train_generator,
+        steps_per_epoch=len(train_generator),
+        epochs=epochs,
+        validation_data=validation_generator,
+        validation_steps=len(validation_generator)
+    )
+    
+    return history
+

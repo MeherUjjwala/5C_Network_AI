@@ -1,0 +1,65 @@
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import JSONResponse
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+import numpy as np
+import cv2
+import io
+
+app = FastAPI()
+
+# Load the best-performing model
+model = load_model('path_to_best_model.h5', custom_objects={'dice_coefficient': dice_coefficient})
+
+def preprocess_image(image):
+    image = cv2.imdecode(np.frombuffer(image, np.uint8), cv2.IMREAD_GRAYSCALE)
+    image = cv2.resize(image, (256, 256))
+    image = image / 255.0
+    image = np.expand_dims(image, axis=-1)
+    image = np.expand_dims(image, axis=0)
+    return image
+
+@app.post("/predict/")
+async def predict(file: UploadFile = File(...)):
+    contents = await file.read()
+    image = preprocess_image(contents)
+    prediction = model.predict(image)
+    prediction = (prediction > 0.5).astype(np.uint8)
+    return JSONResponse(content={"prediction": prediction.tolist()})
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+#streamlit code
+import streamlit as st
+import requests
+import numpy as np
+import cv2
+from PIL import Image
+
+st.title("Brain MRI Metastasis Segmentation")
+
+uploaded_file = st.file_uploader("Choose a brain MRI image...", type="jpg")
+
+if uploaded_file is not None:
+    image = Image.open(uploaded_file)
+    st.image(image, caption='Uploaded MRI.', use_column_width=True)
+    
+    # Convert the image to bytes
+    img_bytes = uploaded_file.read()
+    
+    # Send the image to the FastAPI backend
+    response = requests.post("http://localhost:8000/predict/", files={"file": img_bytes})
+    
+    if response.status_code == 200:
+        prediction = np.array(response.json()["prediction"])
+        prediction = prediction.squeeze()
+        
+        # Display the segmentation result
+        st.image(prediction, caption='Segmentation Result', use_column_width=True)
+    else:
+        st.error("Error in prediction")
+
+if __name__ == "__main__":
+    st.run()
